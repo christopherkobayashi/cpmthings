@@ -2,46 +2,12 @@
 
 # infocpm.py
 # 
-# Patch stock Infocom CP/M interpreter to use ANSI/VT-100 screen control codes
-
-import os
-import sys
-import subprocess
-from sys import argv
-
-if len(argv) < 2:
-  print("Usage: infocpm.py <datfile>")
-  sys.exit(1)
-
-datfile = argv[1]
-
-basename = os.path.basename(datfile)
-outfile = os.path.splitext(basename)[0][0:8].lower() + '.com'
-cpmdatfile = os.path.splitext(basename)[0][0:8].lower() + '.dat'
-
-print("infocpm.py: creating", outfile, "and", cpmdatfile, "from", datfile)
-
-with open('interpreter', 'rb') as binaryfile:
-  terp_buffer = bytearray(binaryfile.read())
-binaryfile.close()
-
-size = len(terp_buffer)
-
-# offsets in the interpreter
-# https://www.vcfed.org/forum/forum/genres/cp-m-and-mp-m/58164-lost-treasures-of-infocom-on-cp-m
-
-CPMCPL = 0x03
-CPMLPP = 0x04
-CPMFN = 0x05
-CPMCLF = 0x0d
-CPMLLF = 0x0e
-CPMINV = 0x0f
-TINIT = 0x10
-TRESET = 0x31
-BLINE = 0x52
-ELINE = 0x73
-PINIT = 0x94
-
+# Patch stock Infocom CP/M interpreter screen control codes
+# By default, this uses ANSI/VT-100 codes.  Other terminal codes are commented
+# below the default settings.
+#
+# BEGIN TUNABLES
+#
 
 columns = 80		# Characters/line (132 maximum)
 rows = 24		# Lines/screen (NOT including status line)
@@ -77,40 +43,169 @@ eline = chr(0x1b) + '[0m' + chr(0x1b) + '[25;1H'
 # If any setup is required prior to using scripting.
 pinit = ''
 
-def multi(start, string):
+# These screen control codes are taken from the official Infocom patch utility
+
+# LEAR SIEGLER ADM3
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0x80
+# tinit = chr(0x1e) + chr(0x1a) + chr(0x1b) + '=' + chr(55) + chr(32)
+# treset = ''
+# bline = chr(0x1b) + '=' + chr(32) + chr(32)
+# eline = chr(0x1b) + '=' + chr(55) + chr(32)
+# pinit = ''
+
+# Default (dumb terminal)
+# columns = 63
+# rows = 0
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0
+# tinit = ''
+# treset = ''
+# bline = ''
+# eline = ''
+# pinit = ''
+
+# INTERTEC COMPUSTAR & SUPERBRAIN
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0
+# tinit = chr(27) + '~k' + chr(27) + 'Y' + chr(55) + chr(32)
+# treset = ''
+# bline = chr(01)
+# eline = chr(27) + 'Y' + chr(55) + chr(32)
+# pinit = ''
+
+# LEAR SIEGLER ADM3
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0x80
+# tinit = chr(0x1e) + chr(0x1a) + chr(0x1b) + '=' + chr(55) + chr(32)
+# treset = ''
+# bline = chr(0x1b) + '=' + chr(32) + chr(32)
+# eline = chr(0x1b) + '=' + chr(55) + chr(32)
+# pinit = ''
+
+# VECTOR
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0
+# tinit = chr(0x1b) + chr(23) + chr(0)
+# treset = ''
+# bline = chr(0x1b) + chr(0) + chr(0) + chr(0x14)
+# eline = chr(0x1b) + chr(23) + chr(0) + chr(0x14)
+# pinit = ''
+
+# XEROX 820
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0
+# tinit = chr(0x1e) + chr(0x1a) + chr(0x1b) + '=' + chr(23) + chr(0)
+# treset = ''
+# bline = chr(0x1b) + '=' + chr(0) + chr(0)
+# eline = chr(0x1b) + '=' + chr(23) + chr(0)
+# pinit = ''
+
+# ZENITH
+# columns = 79
+# rows = 23
+# screen_lf = 1
+# printer_lf = 1
+# inverse_add = 0
+# tinit = chr(27) + 'E' + chr(27) + 'Y' + chr(55) + chr(32)
+# treset = ''
+# bline = chr(27) + 'j' + chr(27) + 'Y' + chr(32) + chr(32) + chr(27) + 'p'
+# eline = chr(27) + 'k' + chr(27) + 'q'
+# pinit = ''
+
+# END TUNABLES
+
+import os
+import sys
+import subprocess
+from sys import argv
+
+# offsets in the interpreter
+# https://www.vcfed.org/forum/forum/genres/cp-m-and-mp-m/58164-lost-treasures-of-infocom-on-cp-m
+
+CPMCPL = 0x03
+CPMLPP = 0x04
+CPMFN = 0x05
+CPMCLF = 0x0d
+CPMLLF = 0x0e
+CPMINV = 0x0f
+TINIT = 0x10
+TRESET = 0x31
+BLINE = 0x52
+ELINE = 0x73
+PINIT = 0x94
+
+def set_control_code(terp_buffer, start, string):
   terp_buffer[start] = len(string)
   offset = 1
   for value in string:
     terp_buffer[start + offset] = ord(value)
     offset += 1
 
-terp_buffer[CPMCPL] = columns
-terp_buffer[CPMLPP] = rows
-terp_buffer[CPMCLF] = screen_lf
-terp_buffer[CPMLLF] = printer_lf
-terp_buffer[CPMINV] = inverse_add
+def set_datfile(terp_buffer, datfile):
+  # Blank out story.dat filename
+  for offset in range(8):
+    terp_buffer[CPMFN + offset] = ord(' ')
+  # Copy story.dat filename
+  terp_buffer[CPMFN:CPMFN+8]
+  offset = 0
+  for character in datfile[0:8]:
+    terp_buffer[CPMFN + offset] = ord(character.upper())
+    offset += 1
 
-# Blank out story.dat filename
-for offset in range(8):
-  terp_buffer[CPMFN + offset] = ord(' ')
+def main():
+  if len(argv) < 2:
+    print("Usage: infocpm.py <datfile>")
+    sys.exit(1)
 
-# Copy story.dat filename
-terp_buffer[CPMFN:CPMFN+8]
-offset = 0
-for character in datfile[0:8]:
-  terp_buffer[CPMFN + offset] = ord(character.upper())
-  offset += 1
+  datfile = argv[1]
 
-multi(TINIT, tinit)
-multi(TRESET, treset)
-multi(BLINE, bline)
-multi(ELINE, eline)
-multi(PINIT, pinit)
+  basename = os.path.basename(datfile)
+  outfile = os.path.splitext(basename)[0][0:8].lower() + '.com'
+  cpmdatfile = os.path.splitext(basename)[0][0:8].lower() + '.dat'
 
-with open(outfile, "wb") as out_terp:
-  out_terp.write(terp_buffer)
-out_terp.close()
+  print("infocpm.py: creating", outfile, "and", cpmdatfile, "from", datfile)
 
-# Create story datfile, padding to page boundaries
+  with open('interpreter', 'rb') as binaryfile:
+    terp_buffer = bytearray(binaryfile.read())
+  binaryfile.close()
 
-subprocess.run(["dd", "if="+datfile, "of="+cpmdatfile, "bs=256", "conv=sync", "status=none"])
+  set_datfile(terp_buffer, datfile)
+
+  terp_buffer[CPMCPL] = columns
+  terp_buffer[CPMLPP] = rows
+  terp_buffer[CPMCLF] = screen_lf
+  terp_buffer[CPMLLF] = printer_lf
+  terp_buffer[CPMINV] = inverse_add
+
+  set_control_code(terp_buffer, TINIT, tinit)
+  set_control_code(terp_buffer, TRESET, treset)
+  set_control_code(terp_buffer, BLINE, bline)
+  set_control_code(terp_buffer, ELINE, eline)
+  set_control_code(terp_buffer, PINIT, pinit)
+
+  with open(outfile, "wb") as out_terp:
+    out_terp.write(terp_buffer)
+  out_terp.close()
+
+  # Create story datfile, padding to page boundaries
+  subprocess.run(["dd", "if="+datfile, "of="+cpmdatfile, "bs=256", "conv=sync", "status=none"])
+
+if __name__=="__main__":
+  main()
