@@ -8,7 +8,6 @@
 
 import os
 import sys
-import subprocess
 from sys import argv
 
 # These screen control codes are taken from the official Infocom patch utility,
@@ -142,12 +141,17 @@ def set_datfile(terp_buffer, datfile):
     offset += 1
 
 def main():
-  if len(argv) < 3:
+  if len(argv) < 2:
     print("Usage: infocpm.py <datfile> <terminal type>")
     sys.exit(1)
 
   datfile = argv[1]
-  terminal_type = argv[2]
+  if len(argv) < 3:
+    print("infocpm.py: terminal type: ANSI (default)")
+    terminal_type = 'ansi'
+  else:
+    terminal_type = argv[2]
+    print("infocpm.py: terminal type:", terminal_type.upper() )
 
   if not terminal_type in screen_codes:
     print("infocpm.py: invalid terminal type")
@@ -160,7 +164,9 @@ def main():
   outfile = os.path.splitext(basename)[0][0:8].lower() + '.com'
   cpmdatfile = os.path.splitext(basename)[0][0:8].lower() + '.dat'
 
-  print("infocpm.py: creating", terminal_type.upper(), outfile, "and", cpmdatfile, "from", datfile)
+  print("            command file: ", outfile )
+  print("            story file:   ", cpmdatfile )
+  print("            source file:  ", datfile)
 
   with open('interpreter', 'rb') as binaryfile:
     terp_buffer = bytearray(binaryfile.read())
@@ -183,9 +189,24 @@ def main():
   with open(outfile, "wb") as out_terp:
     out_terp.write(terp_buffer)
   out_terp.close()
+  print("infocpm.py: wrote", outfile)
 
   # Create story datfile, padding to page boundaries
-  subprocess.run(["dd", "if="+datfile, "of="+cpmdatfile, "bs=256", "conv=sync", "status=none"])
+  datfile_size = os.path.getsize(datfile)
+  print("infocpm.py: story datfile", hex(datfile_size), "bytes")
+  datfile_padded_size = (int ((datfile_size / 256) + (datfile_size % 256 > 0))) * 256
+
+  with open(datfile, 'rb') as binaryfile:
+    datfile_buffer = bytearray(binaryfile.read())
+  binaryfile.close()
+  
+  datfile_buffer = datfile_buffer.ljust(datfile_padded_size, b'\x00')
+  print("infocpm.py: padded datfile to", hex(len(datfile_buffer)), "bytes")
+
+  with open(cpmdatfile, "wb") as out_datfile:
+    out_datfile.write(datfile_buffer)
+  out_datfile.close()
+  print("infocpm.py: wrote", cpmdatfile)
 
 if __name__=="__main__":
   main()
