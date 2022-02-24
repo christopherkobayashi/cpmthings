@@ -81,18 +81,6 @@ pinit = ''
 # eline = chr(27) + 'Y' + chr(55) + chr(32)
 # pinit = ''
 
-# LEAR SIEGLER ADM3
-# columns = 79
-# rows = 23
-# screen_lf = 1
-# printer_lf = 1
-# inverse_add = 0x80
-# tinit = chr(0x1e) + chr(0x1a) + chr(0x1b) + '=' + chr(55) + chr(32)
-# treset = ''
-# bline = chr(0x1b) + '=' + chr(32) + chr(32)
-# eline = chr(0x1b) + '=' + chr(55) + chr(32)
-# pinit = ''
-
 # VECTOR
 # columns = 79
 # rows = 23
