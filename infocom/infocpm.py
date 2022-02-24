@@ -192,9 +192,10 @@ def main():
   print("infocpm.py: wrote", outfile)
 
   # Create story datfile, padding to page boundaries
+  page = 256
   datfile_size = os.path.getsize(datfile)
   print("infocpm.py: story datfile", hex(datfile_size), "bytes")
-  datfile_padded_size = (int ((datfile_size / 256) + (datfile_size % 256 > 0))) * 256
+  datfile_padded_size = (int ((datfile_size / page) + (datfile_size % page > 0))) * page
 
   with open(datfile, 'rb') as binaryfile:
     datfile_buffer = bytearray(binaryfile.read())
