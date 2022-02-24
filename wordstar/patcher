@@ -1,0 +1,42 @@
+#! /usr/bin/python
+
+# Patch ws.com to use VT-100/ANSI control codes
+# https://jefftranter.blogspot.com/2014/03/wordstar-30-on-briel-altair-8800.html
+
+fh = open('ws.com', 'r+b')
+
+# IDTEX
+fh.seek(0x008f)
+fh.write( b' VT-100                         ' )
+# HITE / WID / CLEAD1
+fh.seek(0x0148)
+fh.write( bytes.fromhex('28 50 02 1b 5b') )
+# CLEAD2
+fh.seek(0x0153)
+fh.write( bytes.fromhex('01 3b') )
+# CTRAIL
+fh.seek(0x0158)
+fh.write( bytes.fromhex('01 48'))
+# LINOFF / COLOFF / ASCUR
+fh.seek(0x015e)
+fh.write( bytes.fromhex('01 01 02'))
+# ERAEOL
+fh.seek(0x016d)
+fh.write( bytes.fromhex('03 1b 5b 4b'))
+# LINDEL
+fh.seek(0x0174)
+fh.write( bytes.fromhex('04 1b 5b 31 4d') )
+# LININS
+fh.seek(0x017b)
+fh.write( bytes.fromhex('04 1b 5b 31 4c') )
+# IVON
+fh.seek(0x0184)
+fh.write( bytes.fromhex('04 1b 5b 31 6d') )
+# IVOFF
+fh.seek(0x018b)
+fh.write( bytes.fromhex('04 1b 5b 30 6d') )
+# TRMINI
+fh.seek(0x0192)
+fh.write( bytes.fromhex('02 1b 63') )
+
+fh.close
