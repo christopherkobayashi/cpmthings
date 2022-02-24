@@ -113,4 +113,4 @@ out_terp.close()
 
 # Create story datfile, padding to page boundaries
 
-subprocess.run(["dd", "if="+datfile, "of="+cpmdatfile, "bs=256", "conv=sync"])
+subprocess.run(["dd", "if="+datfile, "of="+cpmdatfile, "bs=256", "conv=sync", "status=none"])
